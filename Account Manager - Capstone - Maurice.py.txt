@@ -1,0 +1,150 @@
+# A Solution: https://github.com/Daytron/Projects/blob/master/Classes/bank_account_manager.py
+class CheckAccount():
+    #  The base account is checking. Money in/out, no overdraft permitted
+    def __init__(self, CustID, Balance=0):
+        self.CustID = CustID
+        self.balance = Balance
+        self.AccountType = "Checking"
+        
+    def AddMoney (self, amount=0):
+        self.balance+=amount
+        
+    def WithdrawMoney (self):
+        amount=float(input ("Balance is {}, please enter amount to withdraw:".format(self.balance)))
+        if amount > self.balance:
+            print ("NOT authorised. Amount requested {} is greater than balance {}".format (amount, self.balance))
+        else:
+            self.balance-=amount
+            print ("New balance: {}".format(self.balance))
+
+    def DisplayBalance (self):
+        print ("Customer: {}, Account Type {}, Balance £{}".format(self.CustID, self.AccountType, self.balance))       
+
+
+class SavingAccount (CheckAccount):
+    # Saving accounts, unlike checking, do not allow money withdrawal
+    def __init__(self, CustID, Balance=0):
+        CheckAccount.__init__(self, CustID, Balance)
+        self.AccountType = "Saving"
+    def WithdrawMoney (self):
+            print ("Saving Account. Withdrawal not permitted.  Transfer to current account then withdraw")
+
+class BusinessAccount (CheckAccount):
+    # A business account includes withdrawal facility and overdraft.
+    # Every time a withdrawal use the overdraft facility, the customer is charged £1
+    def __init__(self, CustID, Balance=0):
+        CheckAccount.__init__(self, CustID, Balance)
+        self.AccountType = "Business"
+        self.authorised = self.balance+1000
+        
+    def WithdrawMoney (self):
+        amount=float(input ("Balance is {}, Authorised(include OD) {}, please enter amount to withdraw:".format(self.balance, self.authorised)))
+        if amount > self.authorised:
+            print ("NOT authorised. Amount requested {} is greater than authorised {}".format(amount, self.authorised))
+        elif self.balance>0: # still in the black
+            self.balance-=amount
+            if self.balance >= 0:
+                self.authorised -= amount
+            else:
+                self.authorised -= (amount+1)
+                self.balance -=1
+        else:
+            # Now adjust the balance with the overdraft charge
+            self.balance-=(amount+1) 
+            # have used overdraft need to recalculate remaining authorised left
+            self.authorised -=(amount+1)
+            self.authorised = max(self.authorised,0)
+
+        print ("New balance: {}, authorised {}".format(self.balance, self.authorised))
+
+
+def OpenAccounts (Alist):
+    # This function is used to initialise accounts.
+    # Input: an account list in form of a list of lists: [["CustID","Checking"/"Saving"/"Business",Opening Amount]]
+    # Output: returns a dictionary of accounts where the keys are the customer IDs: {"CustID":[list of accounts for "CustID"]}
+    
+    LocalDict = {}
+    #initialise dictionnary keys
+    for item in Alist:
+        LocalDict [item[0]]=[]
+    
+    # Create the Accounts
+    for item in Alist:
+        if item[1] == "Checking":
+            LocalDict [item[0]].append (CheckAccount (item[0], item[2]))
+        if item[1] == "Saving":
+            LocalDict [item[0]].append (SavingAccount (item[0], item[2]))
+        if item[1] == "Business":
+            LocalDict [item[0]].append (BusinessAccount (item[0], item[2]))
+            
+    return LocalDict
+    
+
+'''
+Udemy "2020 Complete Python bootcamp from Zero to Hero in Python Capstone project.  
+Title: Account Manager ATM type.
+Author: Maurice Picard, August 2020
+Abstract: Allow creation of 3 types of accounts: Checking,Saving,Business.
+Prompt user to enter his customer ID.  
+If ID is recognised, display account available and what operation is required:
+
+Open testing accounts
+while True
+    Prompt for ID or "exit".
+    If ID exists:
+        Display account available and prompt for account
+        Ask for operation required for selected account:
+            1- Display balance
+            2- Withdraw money
+'''
+from IPython.display import clear_output
+# Open the testing accounts
+CustomersAccounts = OpenAccounts ([
+        ["Cust1","Checking",10000.00],["Cust1","Saving",20000.00],
+        ["Cust2","Checking",10000.00],["Cust2","Saving",20000.00],["Cust2","Business",30000.00],
+        ["Cust3","Checking",10000.00],["Cust3","Business",30000.00]
+    ])
+while True:
+    clear_output()
+    print ("**** welcome to the account ATM ****")
+    CustID = input ("Please enter your customer ID or " + "exit: ")
+    if CustID.upper() == "EXIT":
+        print ("Goodbye.....")
+        break
+    
+    if CustID not in CustomersAccounts:
+        input ("You enterred a wrong account ID... press enter to continue.")
+        continue
+        
+    
+    print ("You have {} accounts: ".format (len (CustomersAccounts[CustID])))
+    Accounts = range(len (CustomersAccounts[CustID]))
+    i=0
+    for A in CustomersAccounts[CustID]:
+        print (i, " - ", A.AccountType)
+        i+=1
+    
+    AccountChoice = int (input ("Please enter the account you want to access: "))
+    if AccountChoice not in Accounts:
+           print ("Wrong entry..please try again")
+           continue
+    else:
+        print ("You have chosen: {} - Account type: {}".format (AccountChoice, CustomersAccounts[CustID][AccountChoice].AccountType))
+        print ("Operations:")
+        print ("1-Display Balance")
+        print ("2-Withdraw money")
+        OperationChoice = input ("Please select one of the above: ")
+        if OperationChoice == '1':
+            CustomersAccounts[CustID][AccountChoice].DisplayBalance()
+        elif OperationChoice == '2':
+            CustomersAccounts[CustID][AccountChoice].WithdrawMoney()
+        else:
+            input ("Bad operation enterred...")
+    
+    input ("please press enter to continue...")
+          
+            
+    
+    
+
+
